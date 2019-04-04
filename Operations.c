@@ -58,6 +58,23 @@ else if(strcmp(token, "mul")==0){
     }
         printf("%i\n", mul);
 }
+else if(strcmp(token, "div")==0){
+    float div;
+    token =strtok(NULL, " ");
+    div=atoi(token);
+    int tok2=1;
+    div=atoi(token); //assign it to div
+    while(token!=NULL){
+        token= strtok(NULL, " "); //store the subsequent number in token
+        div= div / (tok2); //the previous number gets multiplied by the next number in the string
+        tok2=atoi(token); // stores the next number of the string.
+    }
+    printf("%f\n", div);
+    char divbuff[50];
+    int s =sprintf(divbuff, "%f\n", div);
+    if(s==-1) perror("sprintf:");
+    write(STDOUT_FILENO, divbuff, sizeof(divbuff));
+}
 else if(strcmp(token, "run")==0){
     int pid=fork();
     int i=0;
