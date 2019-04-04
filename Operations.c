@@ -31,6 +31,7 @@ if(strcmp(token, "add")==0){
         write(STDOUT_FILENO, sumbuff, s);
 }
 else if(strcmp(token, "sub")==0){
+    //write(STDOUT_FILENO, token, 3);
     token= strtok(NULL, " ");
     int sub;
     sub=atoi(token);
@@ -40,7 +41,7 @@ else if(strcmp(token, "sub")==0){
     }
     //printf("%i\n", sub);
     char diffbuff[10];
-    int s =sprintf(diffbuff, "%d\n", sub);
+    int s =sprintf(diffbuff, "%i\n", sub);
     if(s==-1) perror("sprintf:");
     write(STDOUT_FILENO, diffbuff, s);
 }
@@ -49,13 +50,28 @@ else if(strcmp(token, "mul")==0){
     token= strtok(NULL, " "); //store the first number in token
     int tok2=1;
     mul=atoi(token); //assign it to mult
-    printf("%d %d", mul, tok2);
+    //printf("%d %d", mul, tok2);
     while(token!=NULL){
         token= strtok(NULL, " "); //store the current number
         mul= mul * (tok2); //the current number gets multiplied by the next number in the string
         tok2=atoi(token); // stores the next number of the string.
     }
         printf("%i\n", mul);
+}
+else if(strcmp(token, "run")==0){
+    int pid=fork();
+    int i=0;
+    char *argu[200];
+    while(token!=NULL){
+        token=strtok(NULL, " ");
+        argu[i]=token;
+        i++;
+    }
+    argu[i]=NULL;
+    if(pid==0){
+        int e= execvp(argu[0],argu);
+        if(e==-1) perror("exec");
+    }
 }
 }
 

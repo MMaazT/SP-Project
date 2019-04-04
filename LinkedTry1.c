@@ -9,12 +9,12 @@ struct process{
     time_t stime;
     time_t etime;
     struct process *next;
-    struct process &prev;
+    struct process *prev;
 };
 
 
 int main(){
 
-    struct process *p=
+    printf("Maaz");
 
 }
