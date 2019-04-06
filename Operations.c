@@ -12,6 +12,7 @@ int w1=write(STDOUT_FILENO, "Enter the command:\n", 20);
 if (w1==-1){
     perror("Write1: ");
 }
+while(1){
 int r1=read(STDIN_FILENO,buff1, sizeof(buff1));
 if (r1==-1){
     perror("Read1: ");
@@ -90,5 +91,10 @@ else if(strcmp(token, "run")==0){
         if(e==-1) perror("exec");
     }
 }
+else if(strcmp(token, "exit")==0){
+    break;
+    exit(0);
+}
 }
 
+}
