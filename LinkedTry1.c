@@ -15,6 +15,7 @@ struct process{
 
 int main(){
 
+    
     printf("Maaz");
 
 }

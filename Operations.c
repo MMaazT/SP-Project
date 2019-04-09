@@ -4,8 +4,26 @@
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+void printList();
+void addProcess(pid_t pid, pid_t ppid, char* name);
+typedef struct process{
+    pid_t pid;
+    pid_t ppid;
+    char * name;
+    time_t stime;
+    time_t etime;
+    //bool isActive;
+};
+struct process Table[1000];
+int tracker=0;
 
 int main(int argc , char *argv[]){
+
+
+
 
 char buff1[500];
 int w1=write(STDOUT_FILENO, "Enter the command:\n", 20);
@@ -36,9 +54,10 @@ else if(strcmp(token, "sub")==0){
     token= strtok(NULL, " ");
     int sub;
     sub=atoi(token);
+    token= strtok(NULL, " ");
     while(token!=NULL){
-        token= strtok(NULL, " ");
         sub= sub - atoi(token);
+        token= strtok(NULL, " ");
     }
     //printf("%i\n", sub);
     char diffbuff[10];
@@ -49,32 +68,35 @@ else if(strcmp(token, "sub")==0){
 else if(strcmp(token, "mul")==0){
     int mul=0;
     token= strtok(NULL, " "); //store the first number in token
-    int tok2=1;
+    int tok2;
     mul=atoi(token); //assign it to mult
-    //printf("%d %d", mul, tok2);
+    tok2= atoi(strtok(NULL, " "));
     while(token!=NULL){
-        token= strtok(NULL, " "); //store the current number
         mul= mul * (tok2); //the current number gets multiplied by the next number in the string
         tok2=atoi(token); // stores the next number of the string.
+        token= strtok(NULL, " "); //store the current number
     }
-        printf("%i\n", mul);
+    char mulbuff[50];
+    int s =sprintf(mulbuff, "%i\n", mul);
+    if(s==-1) perror("sprintf:");
+    write(STDOUT_FILENO, mulbuff, s);
 }
 else if(strcmp(token, "div")==0){
     float div;
     token =strtok(NULL, " ");
     div=atoi(token);
-    int tok2=1;
-    div=atoi(token); //assign it to div
+    token =strtok(NULL, " ");
+    float tok2;
+    tok2=atoi(token); //assign it to div
     while(token!=NULL){
-        token= strtok(NULL, " "); //store the subsequent number in token
         div= div / (tok2); //the previous number gets multiplied by the next number in the string
         tok2=atoi(token); // stores the next number of the string.
+        token= strtok(NULL, " "); //store the subsequent number in token
     }
-    printf("%f\n", div);
     char divbuff[50];
     int s =sprintf(divbuff, "%f\n", div);
     if(s==-1) perror("sprintf:");
-    write(STDOUT_FILENO, divbuff, sizeof(divbuff));
+    write(STDOUT_FILENO, divbuff, strlen(divbuff));
 }
 else if(strcmp(token, "run")==0){
     int pid=fork();
@@ -89,12 +111,46 @@ else if(strcmp(token, "run")==0){
     if(pid==0){
         int e= execvp(argu[0],argu);
         if(e==-1) perror("exec");
+        else {
+            addProcess(getpid(), getppid(), argu[0]);
+         
+        }
     }
 }
 else if(strcmp(token, "exit")==0){
     break;
     exit(0);
 }
+else if(strcmp(token, "printlist")==0){
+    printList();
+}
 }
 
+}
+
+void addProcess(pid_t pid, pid_t ppid, char* name){
+    struct process *p;
+    p->pid=pid;
+    p->ppid=ppid;
+    p->name=name;
+
+    Table[tracker]= *p;
+    tracker++;
+}
+
+void printList(){
+    char buff[1000];
+   
+    int i;
+    for(i=0; i<2; i++){
+        char sb[10];
+        sprintf(sb, "%d\t", Table[i].pid);
+        strcpy(buff,sb) ;
+        sprintf(sb, "%d\t", Table[i].ppid);
+        strcat(buff,sb);
+        sprintf(sb, "%s\t", Table[i].name);
+        strcat(buff, sb);
+        strcat(buff, "\0\n");
+    }
+    printf("%s", buff);
 }
