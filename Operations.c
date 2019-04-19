@@ -94,12 +94,12 @@ else if(strcmp(token, "div")==0){
         token= strtok(NULL, " "); //store the subsequent number in token
     }
     char divbuff[50];
-    int s =sprintf(divbuff, "%f\n", div);
+    int s =sprintf(divbuff, "%0.2f\n", div);
     if(s==-1) perror("sprintf:");
-    write(STDOUT_FILENO, divbuff, strlen(divbuff));
+    write(STDOUT_FILENO, divbuff, s);
 }
 else if(strcmp(token, "run")==0){
-    int pid=fork();
+    
     int i=0;
     char *argu[200];
     while(token!=NULL){
@@ -108,14 +108,19 @@ else if(strcmp(token, "run")==0){
         i++;
     }
     argu[i]=NULL;
+    printf("%s %d", argu[0], strlen(argu[0]));
+    int pid=fork();
     if(pid==0){
         int e= execvp(argu[0],argu);
         if(e==-1) perror("exec");
         else {
-            addProcess(getpid(), getppid(), argu[0]);
-         
+         //   addProcess(getpid(), getppid(), argu[0]);
         }
     }
+    if(pid>0){
+        addProcess(pid, getpid(), argu[0]);
+    }
+
 }
 else if(strcmp(token, "exit")==0){
     break;
@@ -127,12 +132,11 @@ else if(strcmp(token, "printlist")==0){
 }
 
 }
-
 void addProcess(pid_t pid, pid_t ppid, char* name){
     struct process *p;
     p->pid=pid;
     p->ppid=ppid;
-    p->name=name;
+    strcpy(p->name,name);
 
     Table[tracker]= *p;
     tracker++;
@@ -152,5 +156,5 @@ void printList(){
         strcat(buff, sb);
         strcat(buff, "\0\n");
     }
-    printf("%s", buff);
+    write(STDOUT_FILENO, buff, strlen(buff)+1);
 }
