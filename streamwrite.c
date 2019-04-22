@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 	}
 	while(1) {
 
-	if (write(sock, DATA, sizeof(DATA)) < 0)
+	if (write(sock, argv[3], sizeof(argv[3])) < 0)
 		perror("writing on stream socket");
 	getchar();
 
