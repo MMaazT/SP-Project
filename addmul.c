@@ -10,10 +10,11 @@
 void Operations(char * buff, char* saveptr2);
 
 int main(){
-    char * buff[100];
+    char buff[100];
+    char * lastTok;
     char *saveptr1, *saveptr2, *str1, *str2;
     int r= read(STDIN_FILENO, buff, 100);
-    buff[r]='\0'; //change to r-1 if doesnt work
+    buff[r-1]='\0'; //change to r-1 if doesnt work
     int i=0;
     char * token1;
     char *delimArr[20];
@@ -21,11 +22,14 @@ int main(){
     while(token1!=NULL){
         delimArr[i]=token1;
         //printf("%s", delimArr[i]);
-        i++;
         token1=strtok_r(NULL,";", &saveptr1);
+        //printf("%s %d\n", delimArr[i], i);
+        i++;
     }
+    printf("%d\n", i);
+    strcpy(lastTok, delimArr[i-1]);
     int j;
-    for(j=0; j<i; j++){
+    for(j=0; j<i-1; j++){
         Operations(delimArr[j], saveptr2); //change to &saveptr if doesnt work
     }
     }

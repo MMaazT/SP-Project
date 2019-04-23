@@ -6,9 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 
 void printList();
-void addProcess(pid_t pid, pid_t ppid, char* name);
+void addProcess(pid_t pid, char* name);
 typedef struct Process{
     pid_t pid;
     pid_t ppid;
@@ -16,7 +17,8 @@ typedef struct Process{
     time_t stime;
     time_t etime;
     //bool isActive;
-}Processes;
+ } Processes;
+
 
 Processes proc[1000];
 int tracker=0;
@@ -101,27 +103,23 @@ while(1){
         char *argu[200];
         while(token!=NULL){
             token=strtok(NULL, " ");
-            argu[i]=token;
+            argu[i]=token + '\0';;
             i++;
     }
         argu[i]=NULL;
-        //printf("%s %d", argu[0], strlen(argu[0]));
+        int pipe_descriptors[2];
         int pid=fork();
         if(pid==0){
             int e= execvp(argu[0],argu);
-            if(e==-1) perror("exec");
-            else {
-            //addProcess(getpid(), getppid(), argu[0]);
+            if (e == -1)
+        {
+            perror("Exec");
+                }
         }
-    }
         if(pid>0){
-            //printf("%d\n", pid);
-            //printf("%d", getpid());
-            //printf(argu[0]);
-            addProcess(pid, getpid(), argu[0]);
+                addProcess(pid,argu[0]);
+            }
     }
-
-}
     else if(strcmp(token, "exit")==0){
         break;
         exit(0);
@@ -132,32 +130,21 @@ while(1){
 }
 
 }
-void addProcess(pid_t pid, pid_t ppid, char* name){
-    struct Process *p;
-    p->pid=pid;
-    p->ppid=ppid;
-    p->name= (char*)malloc(sizeof(char*));
-    strcpy(p->name,name);
-
-    proc[tracker]= *p;
+void addProcess(pid_t pid, char* name){
+    proc[tracker].pid = pid;
+    proc[tracker].name = strdup(name);
     tracker++;
 }
 
 void printList(){
     char buff[1000];
-   
-    int i;
-    for(i=0; i<1; i++){
+    write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tEndTime\tTimeElapsed\n", 57);
+    int i, no;
+    for(i=0; i<tracker; i++){
         char * ind, pi, ppi;
-        sprintf(ind, "%d\t", i);
-        strcpy(buff, ind);
-        sprintf(pi, "%d\t", proc[i].pid);
-        strcat(buff,pi) ;
-        sprintf(ppi, "%d\t", proc[i].ppid);
-        strcat(buff,ppi);
-        //sprintf(sb, "%s\t", Table[i].name);
-        strcat(buff, proc[i].name);
-        strcat(buff, "\0\n");
+        no = sprintf(buff, "%d\t\t", i);
+        no += sprintf(buff + no, "%d\t\t", proc[i].pid);
+        no += sprintf(buff + no, "%s\n", proc[i].name);
     }
-    write(STDOUT_FILENO, buff, strlen(buff));
+    write(STDOUT_FILENO, buff, no);
 }
