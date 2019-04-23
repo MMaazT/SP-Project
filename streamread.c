@@ -12,7 +12,7 @@
  * program accepts a new connection.
  */
 
-int main()
+int main(void)
 {
 	int sock, length;
 	struct sockaddr_in server;
