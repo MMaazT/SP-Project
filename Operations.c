@@ -14,10 +14,10 @@ void printList();
 void addProcess(pid_t pid, char* name, char* st);
 typedef struct Process{
     pid_t pid;
-    pid_t ppid;
     char * name; 
     char* stime;
-    char* etime;
+    char* eltime;
+    char * endtime;
     bool isActive;
  } Processes;
 
@@ -107,7 +107,7 @@ while(1){
         char *argu[200];
         while(token!=NULL){
             token=strtok(NULL, " ");
-            argu[i]=token + '\0';;
+            argu[i]=token; //add a null if creates problem
             i++;
     }
         argu[i]=NULL;
@@ -139,10 +139,9 @@ while(1){
         bool terminated=false;
         token= strtok(NULL, " ");
         int i;
-        for(i=0; i<=tracker; i++){
+        for(i=0; i<tracker; i++){
             char strpid[6];
             sprintf(strpid, "%d", proc[i].pid);
-            //itoa(proc[i].pid, strpid,6);
             if (strcmp(strpid, token)==0){
                 if(proc[i].isActive==false){
                     write(STDOUT_FILENO, "Process has already terminated!\n", 32);
@@ -152,17 +151,17 @@ while(1){
                 proc[i].isActive=false;
                 break;
             }
-            else if (strcmp(proc[i].name, token)==0){ //not working: try running after above loop
+            else if (strcmp(proc[i].name+'\0', token)==0){ //not working: try running after above loop
                 if(proc[i].isActive==false){
-                    write(STDOUT_FILENO, "Process has already terminated!", 32);
-                    break;
+                    continue;
                 }
-                kill(proc[i].pid, SIGTERM);
-                proc[i].isActive=false;
-                break;
+                else {
+                    kill(proc[i].pid, SIGTERM);
+                    proc[i].isActive=false;
+                    }
+            }
+            //write(STDOUT_FILENO, "No process exists with the given PID or name!", 46);
         }
-    
-    }
     }
     else if(strcmp(token, "exit")==0){
         break;
@@ -213,8 +212,14 @@ void printList(){
         ds = difft%60;
         int s=sprintf(elap, "%02d:%02d:%02d", dh, dm ,ds);
         
-        proc[i].etime=strdup(elap);
-        no += sprintf(onebuff + no, "%s\t", elap);
+        if(proc[i].isActive){
+            proc[i].eltime=strdup(elap);
+            no += sprintf(onebuff + no, "%s\t", elap);
+        }
+        else{
+            proc[i].eltime= "------------";
+            no += sprintf(onebuff + no, "%s\t", proc[i].eltime);
+        }
         no += sprintf(onebuff + no, "%s\n", proc[i].isActive  ? "Yes" : "No");
         buff[i]= strdup(onebuff);
     }
