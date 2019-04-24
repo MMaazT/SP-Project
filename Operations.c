@@ -7,6 +7,8 @@
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
+#include <stdbool.h>
+#include <signal.h>
 
 void printList();
 void addProcess(pid_t pid, char* name, char* st);
@@ -16,7 +18,7 @@ typedef struct Process{
     char * name; 
     char* stime;
     char* etime;
-    //bool isActive;
+    bool isActive;
  } Processes;
 
 
@@ -130,14 +132,42 @@ while(1){
             else	// after midday
 		        sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
             //write(STDOUT_FILENO, timebuff, sizeof(timebuff));
-            addProcess(pid,argu[0], timebuff);
-                
+            addProcess(pid,argu[0], timebuff);         
+        }
     }
+    else if(strcmp(token, "kill")==0){
+        bool terminated=false;
+        token= strtok(NULL, " ");
+        int i;
+        for(i=0; i<=tracker; i++){
+            char strpid[6];
+            sprintf(strpid, "%d", proc[i].pid);
+            //itoa(proc[i].pid, strpid,6);
+            if (strcmp(strpid, token)==0){
+                if(proc[i].isActive==false){
+                    write(STDOUT_FILENO, "Process has already terminated!\n", 32);
+                    break;
+                }
+                kill(proc[i].pid, SIGTERM);
+                proc[i].isActive=false;
+                break;
             }
+            else if (strcmp(proc[i].name, token)==0){ //not working: try running after above loop
+                if(proc[i].isActive==false){
+                    write(STDOUT_FILENO, "Process has already terminated!", 32);
+                    break;
+                }
+                kill(proc[i].pid, SIGTERM);
+                proc[i].isActive=false;
+                break;
+        }
+    
+    }
+    }
     else if(strcmp(token, "exit")==0){
         break;
         exit(0);
-}
+    }
     else if(strcmp(token, "printlist")==0){
         printList();
 }
@@ -148,13 +178,14 @@ void addProcess(pid_t pid, char* name, char* st){
     proc[tracker].pid = pid;
     proc[tracker].name = strdup(name);
     proc[tracker].stime= strdup(st);
+    proc[tracker].isActive=true;
     tracker++;
 }
 
 void printList(){
     int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
     char * buff[100000];
-    write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\n", 49);
+    int w= write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\n\n", 56);
     int i;
     for(i=0; i<tracker; i++){
         int no=0;
@@ -183,7 +214,8 @@ void printList(){
         int s=sprintf(elap, "%02d:%02d:%02d", dh, dm ,ds);
         
         proc[i].etime=strdup(elap);
-        no += sprintf(onebuff + no, "%s\n", elap);
+        no += sprintf(onebuff + no, "%s\t", elap);
+        no += sprintf(onebuff + no, "%s\n", proc[i].isActive  ? "Yes" : "No");
         buff[i]= strdup(onebuff);
     }
 
