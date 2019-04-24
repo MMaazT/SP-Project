@@ -9,12 +9,12 @@
 #include <fcntl.h>
 
 void printList();
-void addProcess(pid_t pid, char* name);
+void addProcess(pid_t pid, char* name, char* st);
 typedef struct Process{
     pid_t pid;
     pid_t ppid;
     char * name; 
-    time_t stime;
+    char* stime;
     time_t etime;
     //bool isActive;
  } Processes;
@@ -22,6 +22,8 @@ typedef struct Process{
 
 Processes proc[1000];
 int tracker=0;
+int hours, minutes, seconds;
+time_t now;
 
 int main(int argc , char *argv[]){
 char buff1[500];
@@ -117,9 +119,21 @@ while(1){
                 }
         }
         if(pid>0){
-                addProcess(pid,argu[0]);
-            }
+            char timebuff[30];	
+            time(&now);
+            struct tm *local = localtime(&now);
+            hours = local->tm_hour;      	// get hours since midnight (0-23)
+            minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
+            seconds = local->tm_sec;
+            if (hours < 12)	// before midday
+                sprintf(timebuff, "%02d:%02d:%02d am", hours, minutes, seconds);
+            else	// after midday
+		        sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
+            //write(STDOUT_FILENO, timebuff, sizeof(timebuff));
+            addProcess(pid,argu[0], timebuff);
+                
     }
+            }
     else if(strcmp(token, "exit")==0){
         break;
         exit(0);
@@ -130,21 +144,34 @@ while(1){
 }
 
 }
-void addProcess(pid_t pid, char* name){
+void addProcess(pid_t pid, char* name, char* st){
     proc[tracker].pid = pid;
     proc[tracker].name = strdup(name);
+    proc[tracker].stime= strdup(st);
     tracker++;
 }
 
 void printList(){
-    char buff[1000];
+    char * buff[100000];
     write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tEndTime\tTimeElapsed\n", 57);
-    int i, no;
+    int i;
     for(i=0; i<tracker; i++){
-        char * ind, pi, ppi;
-        no = sprintf(buff, "%d\t\t", i);
-        no += sprintf(buff + no, "%d\t\t", proc[i].pid);
-        no += sprintf(buff + no, "%s\n", proc[i].name);
+        int no=0;
+        char onebuff[100];
+        no = sprintf(onebuff, "%d\t", i+1);
+        no += sprintf(onebuff + no, "%d\t\t", proc[i].pid);
+        no += sprintf(onebuff + no, "%s\t\t", proc[i].name);
+        no += sprintf(onebuff + no, "%s\n", proc[i].stime);
+        //elapsedtime
+        time(&now);
+        struct tm *local = localtime(&now);
+        hours = local->tm_hour;      	// get hours since midnight (0-23)
+        minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
+        seconds = local->tm_sec;
+
+        buff[i]= strdup(onebuff);
     }
-    write(STDOUT_FILENO, buff, no);
+    for(i=0; i<tracker; i++){
+        write(STDOUT_FILENO, buff[i], strlen(buff[i]));
+}
 }
