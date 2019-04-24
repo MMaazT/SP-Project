@@ -15,7 +15,7 @@ typedef struct Process{
     pid_t ppid;
     char * name; 
     char* stime;
-    time_t etime;
+    char* etime;
     //bool isActive;
  } Processes;
 
@@ -152,25 +152,41 @@ void addProcess(pid_t pid, char* name, char* st){
 }
 
 void printList(){
+    int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
     char * buff[100000];
-    write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tEndTime\tTimeElapsed\n", 57);
+    write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\n", 49);
     int i;
     for(i=0; i<tracker; i++){
         int no=0;
         char onebuff[100];
+        char elap[16];
         no = sprintf(onebuff, "%d\t", i+1);
         no += sprintf(onebuff + no, "%d\t\t", proc[i].pid);
         no += sprintf(onebuff + no, "%s\t\t", proc[i].name);
-        no += sprintf(onebuff + no, "%s\n", proc[i].stime);
+        no += sprintf(onebuff + no, "%s\t", proc[i].stime);
+        
         //elapsedtime
         time(&now);
         struct tm *local = localtime(&now);
         hours = local->tm_hour;      	// get hours since midnight (0-23)
+        if (hours>12) hours-=12;
         minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
         seconds = local->tm_sec;
-
+        seconds1= hours*60*60+ minutes*60 + seconds;
+        sscanf(proc[i].stime,"%02d:%02d:%02d", &h2, &m2,&s2);
+        seconds2= h2*60*60+ m2*60 + s2;
+        difft=seconds1-seconds2;
+        dm = difft/60;
+        dh = dm/60;
+        dm = dm%60;
+        ds = difft%60;
+        int s=sprintf(elap, "%02d:%02d:%02d", dh, dm ,ds);
+        
+        proc[i].etime=strdup(elap);
+        no += sprintf(onebuff + no, "%s\n", elap);
         buff[i]= strdup(onebuff);
     }
+
     for(i=0; i<tracker; i++){
         write(STDOUT_FILENO, buff[i], strlen(buff[i]));
 }
