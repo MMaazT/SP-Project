@@ -21,7 +21,6 @@ typedef struct Process{
     bool isActive;
  } Processes;
 
-
 Processes proc[1000];
 int tracker=0;
 int hours, minutes, seconds;
@@ -61,13 +60,12 @@ while(1){
         while(token!=NULL){
             sub= sub - atoi(token);
             token= strtok(NULL, " ");
-    }
-    //printf("%i\n", sub);
+        }
         char diffbuff[10];
         int s =sprintf(diffbuff, "%i\n", sub);
         if(s==-1) perror("sprintf:");
         write(STDOUT_FILENO, diffbuff, s);
-}
+    }
     else if(strcmp(token, "mul")==0){
         int mul=0;
         token= strtok(NULL, " "); //store the first number in token
@@ -78,12 +76,12 @@ while(1){
             mul= mul * (tok2); //the current number gets multiplied by the next number in the string
             tok2=atoi(token); // stores the next number of the string.
             token= strtok(NULL, " "); //store the current number
-    }
+        }
         char mulbuff[50];
         int s =sprintf(mulbuff, "%i\n", mul);
         if(s==-1) perror("sprintf:");
         write(STDOUT_FILENO, mulbuff, s);
-}
+    }
     else if(strcmp(token, "div")==0){
         float div;
         token =strtok(NULL, " ");
@@ -95,14 +93,13 @@ while(1){
             div= div / (tok2); //the previous number gets multiplied by the next number in the string
             tok2=atoi(token); // stores the next number of the string.
             token= strtok(NULL, " "); //store the subsequent number in token
-    }
+        }
         char divbuff[50];
         int s =sprintf(divbuff, "%0.2f\n", div);
         if(s==-1) perror("sprintf:");
         write(STDOUT_FILENO, divbuff, s);
-}
+    }
     else if(strcmp(token, "run")==0){
-    
         int i=0;
         char *argu[200];
         while(token!=NULL){
@@ -116,8 +113,7 @@ while(1){
         pid=fork();
         if(pid==0){
             int exec_status= execvp(argu[0],argu);
-            if (exec_status == -1)
-            {     
+            if (exec_status == -1){     
                 char error_buffer[4] = {0};
                 int error = errno;
                 sprintf(error_buffer, "%d", error);
@@ -143,8 +139,7 @@ while(1){
 		            sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
                 addProcess(pid,argu[0], timebuff);
             }
-            if (bytes_read > 0)
-            {
+            if (bytes_read > 0){
                 char tempbuff[32];
                 int error = atoi(buffer);
                 sprintf(tempbuff,"EXECVP Failed because: %s\n\0",strerror(error));
@@ -208,7 +203,7 @@ while(1){
                         proc[i].endtime= strdup(timebuff);
                         break;
                     } 
-                }
+                }/*
                 else {
                     if(i!=tracker-1) continue;
                     else{
@@ -216,7 +211,7 @@ while(1){
                         write(STDOUT_FILENO, "All instances of this process have already terminated!\n", 55);
                         break;}   
                     }      
-                    }
+                    }*/   
             }
         }   if(!isPresent) write(STDOUT_FILENO,"No process present with the given name and pid!\n", 48);
     }
@@ -226,9 +221,18 @@ while(1){
     }
     else if(strcmp(token, "printlist")==0){
         printList();
+    }
+    else if (strcmp(token, "help")==0){
+        write(STDOUT_FILENO,"1. add: The 'add' command sums the string of numbers that follows it.\n", 71);
+        write(STDOUT_FILENO,"2. sub: The 'sub' command subtracts each subsequent number from the previous one.\n", 83);
+        write(STDOUT_FILENO,"3. mul: The 'mul' command multiplies all the numbers.\n", 55);
+        write(STDOUT_FILENO,"4. div: The 'div' command divides the first number by the second number.\n", 74);
+        write(STDOUT_FILENO,"5. run: The 'run' command starts a new process if exec is successful.\n", 71);
+        write(STDOUT_FILENO,"6. exit: The 'exit' command terminates the current program.\n", 61);
+        write(STDOUT_FILENO,"7. kill: The 'kill' command terminates a child process by either pid or name which follows it.\n", 96);
+        write(STDOUT_FILENO,"8. printlist: The 'printlist' command prints the process list in its current state.\n", 85);
+    }
 }
-}
-
 }
 void addProcess(pid_t pid, char* name, char* st){
     proc[tracker].pid = pid;
@@ -284,5 +288,5 @@ void printList(){
     }
     for(i=0; i<tracker; i++){
         write(STDOUT_FILENO, buff[i], strlen(buff[i]));
-}
+    }
 }
