@@ -116,9 +116,9 @@ while(1){
         if(pid==0){
             int e= execvp(argu[0],argu);
             if (e == -1)
-        {
-            perror("Exec");
-                }
+        {      perror("Exec");
+                
+            }
         }
         if(pid>0){
             char timebuff[30];	
@@ -131,37 +131,75 @@ while(1){
                 sprintf(timebuff, "%02d:%02d:%02d am", hours, minutes, seconds);
             else	// after midday
 		        sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
-            //write(STDOUT_FILENO, timebuff, sizeof(timebuff));
             addProcess(pid,argu[0], timebuff);         
         }
     }
     else if(strcmp(token, "kill")==0){
-        bool terminated=false;
         token= strtok(NULL, " ");
         int i;
+        bool allTerminated=true;
+        bool isPresent=false;
         for(i=0; i<tracker; i++){
+            bool allTerminated=true;
             char strpid[6];
             sprintf(strpid, "%d", proc[i].pid);
             if (strcmp(strpid, token)==0){
-                if(proc[i].isActive==false){
-                    write(STDOUT_FILENO, "Process has already terminated!\n", 32);
+                isPresent=true;
+                if(!proc[i].isActive){
+                    write(STDOUT_FILENO, "Process has already terminated!\n", 33);
                     break;
                 }
-                kill(proc[i].pid, SIGTERM);
-                proc[i].isActive=false;
-                break;
-            }
-            else if (strcmp(proc[i].name+'\0', token)==0){ //not working: try running after above loop
-                if(proc[i].isActive==false){
-                    continue;
-                }
-                else {
-                    kill(proc[i].pid, SIGTERM);
+                int k= kill(proc[i].pid, SIGTERM);
+                if(k==-1) perror("Kill Error: ");
+                else{
                     proc[i].isActive=false;
+                    //timestamp
+                    char timebuff[30];	
+                    time(&now);
+                    struct tm *local = localtime(&now);
+                    hours = local->tm_hour;      	// get hours since midnight (0-23)
+                    minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
+                    seconds = local->tm_sec;
+                    if (hours < 12)	// before midday
+                        sprintf(timebuff, "%02d:%02d:%02d am", hours, minutes, seconds);
+                    else	// after midday
+		                sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
+                    proc[i].endtime= strdup(timebuff);
+                    break;
                     }
             }
-            //write(STDOUT_FILENO, "No process exists with the given PID or name!", 46);
-        }
+            else if (strcmp(proc[i].name+'\0', token)==0){
+                isPresent=true; 
+                if(proc[i].isActive){
+                    int k =kill(proc[i].pid, SIGTERM);
+                    if(k==-1) perror("Kill Error: ");
+                    else {
+                        proc[i].isActive=false;
+                        allTerminated=false; 
+                        char timebuff[30];	
+                        time(&now);
+                        struct tm *local = localtime(&now);
+                        hours = local->tm_hour;      	// get hours since midnight (0-23)
+                        minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
+                        seconds = local->tm_sec;
+                        if (hours < 12)	// before midday
+                            sprintf(timebuff, "%02d:%02d:%02d am", hours, minutes, seconds);
+                        else	// after midday
+		                    sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
+                        proc[i].endtime= strdup(timebuff);
+                        break;
+                    } 
+                }
+                else {
+                    if(i!=tracker-1) continue;
+                    else{
+                        if(allTerminated){
+                        write(STDOUT_FILENO, "All instances of this process have already terminated!\n", 55);
+                        break;}   
+                    }      
+                    }
+            }
+        }   if(!isPresent) write(STDOUT_FILENO,"No process present with the given name and pid!\n", 48);
     }
     else if(strcmp(token, "exit")==0){
         break;
@@ -178,13 +216,14 @@ void addProcess(pid_t pid, char* name, char* st){
     proc[tracker].name = strdup(name);
     proc[tracker].stime= strdup(st);
     proc[tracker].isActive=true;
+    proc[tracker].endtime= "-------------";
     tracker++;
 }
 
 void printList(){
     int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
     char * buff[100000];
-    int w= write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\n\n", 56);
+    int w= write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\tEndTime\n\n", 65);
     int i;
     for(i=0; i<tracker; i++){
         int no=0;
@@ -220,7 +259,8 @@ void printList(){
             proc[i].eltime= "------------";
             no += sprintf(onebuff + no, "%s\t", proc[i].eltime);
         }
-        no += sprintf(onebuff + no, "%s\n", proc[i].isActive  ? "Yes" : "No");
+        no += sprintf(onebuff + no, "%s\t", proc[i].isActive  ? "Yes" : "No");
+        no += sprintf(onebuff + no, "%s\n", proc[i].endtime);
         buff[i]= strdup(onebuff);
     }
 
