@@ -109,29 +109,48 @@ while(1){
             token=strtok(NULL, " ");
             argu[i]=token; //add a null if creates problem
             i++;
-    }
+        }   
         argu[i]=NULL;
-        int pipe_descriptors[2];
-        int pid=fork();
+        int pipe_status, exec_status, pid, pipe_descriptors[2];
+        pipe_status = pipe2(pipe_descriptors, __O_CLOEXEC);
+        pid=fork();
         if(pid==0){
-            int e= execvp(argu[0],argu);
-            if (e == -1)
-        {      perror("Exec");
-                
+            int exec_status= execvp(argu[0],argu);
+            if (exec_status == -1)
+            {     
+                char error_buffer[4] = {0};
+                int error = errno;
+                sprintf(error_buffer, "%d", error);
+                close(pipe_descriptors[0]);
+                write(pipe_descriptors[1], error_buffer, sizeof(int));
+                close(pipe_descriptors[1]);  
             }
         }
         if(pid>0){
-            char timebuff[30];	
-            time(&now);
-            struct tm *local = localtime(&now);
-            hours = local->tm_hour;      	// get hours since midnight (0-23)
-            minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
-            seconds = local->tm_sec;
-            if (hours < 12)	// before midday
-                sprintf(timebuff, "%02d:%02d:%02d am", hours, minutes, seconds);
-            else	// after midday
-		        sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
-            addProcess(pid,argu[0], timebuff);         
+            char buffer[4] = {0};
+            close(pipe_descriptors[1]);
+            int bytes_read = read(pipe_descriptors[0], buffer, sizeof(int));
+            if (bytes_read == 0){
+                char timebuff[30];	
+                time(&now);
+                struct tm *local = localtime(&now);
+                hours = local->tm_hour;      	// get hours since midnight (0-23)
+                minutes = local->tm_min;     	// get minutes passed after the hour (0-59)
+                seconds = local->tm_sec;
+                if (hours < 12)	// before midday
+                    sprintf(timebuff, "%02d:%02d:%02d am", hours, minutes, seconds);
+                else	// after midday
+		            sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
+                addProcess(pid,argu[0], timebuff);
+            }
+            if (bytes_read > 0)
+            {
+                char tempbuff[32];
+                int error = atoi(buffer);
+                sprintf(tempbuff,"EXECVP Failed because: %s\n\0",strerror(error));
+                write(STDOUT_FILENO, tempbuff, strlen(tempbuff));
+                break;
+            }         
         }
     }
     else if(strcmp(token, "kill")==0){
@@ -263,7 +282,6 @@ void printList(){
         no += sprintf(onebuff + no, "%s\n", proc[i].endtime);
         buff[i]= strdup(onebuff);
     }
-
     for(i=0; i<tracker; i++){
         write(STDOUT_FILENO, buff[i], strlen(buff[i]));
 }
