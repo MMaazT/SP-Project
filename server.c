@@ -37,12 +37,13 @@ Processes proc[1000];
 int tracker=0;
 int hours, minutes, seconds;
 time_t now;
+int msgsock;
 
 int main(void)
 {
 	int sock, length;
 	struct sockaddr_in server;
-	int msgsock;
+	
 	char buf[1024];
 	int rval;
 	int i;
@@ -69,10 +70,8 @@ int main(void)
 	}
     char portBuff[30];
 	int pc =sprintf(portBuff, "Socket has port #%d\n", ntohs(server.sin_port));
-	//portBuff[pc-1]='\n';
 	
     write(STDOUT_FILENO, portBuff, pc);
-	//fflush(stdout);
 
 	/* Start accepting connections */
 	listen(sock, 5);
@@ -237,6 +236,7 @@ int main(void)
 									else	// after midday
 										sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
 									proc[i].endtime= strdup(timebuff);
+									write(msgsock, "The process has terminated successfully!\n", 41);
 									break;
 									}
 							}
@@ -259,6 +259,7 @@ int main(void)
 										else	// after midday
 											sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
 										proc[i].endtime= strdup(timebuff);
+										write(msgsock, "The process has terminated successfully!\n", 41);
 										break;
 									} 
 								}/*
@@ -271,9 +272,10 @@ int main(void)
 									}      
 									}*/   
 							}
-						}   if(!isPresent) write(STDOUT_FILENO,"No process present with the given name and pid!\n", 48);
+						}   if(!isPresent) write(msgsock,"No process present with the given name and pid!\n", 48);
 					}
 					else if(strcmp(token, "exit")==0){
+						//kill()
 						break;
 						exit(0);
 					}
@@ -281,14 +283,16 @@ int main(void)
 						printList();
 					}
 					else if (strcmp(token, "help")==0){
-						write(STDOUT_FILENO,"1. add: The 'add' command sums the string of numbers that follows it.\n", 71);
-						write(STDOUT_FILENO,"2. sub: The 'sub' command subtracts each subsequent number from the previous one.\n", 83);
-						write(STDOUT_FILENO,"3. mul: The 'mul' command multiplies all the numbers.\n", 55);
-						write(STDOUT_FILENO,"4. div: The 'div' command divides the first number by the second number.\n", 74);
-						write(STDOUT_FILENO,"5. run: The 'run' command starts a new process if exec is successful.\n", 71);
-						write(STDOUT_FILENO,"6. exit: The 'exit' command terminates the current program.\n", 61);
-						write(STDOUT_FILENO,"7. kill: The 'kill' command terminates a child process by either pid or name which follows it.\n", 96);
-						write(STDOUT_FILENO,"8. printlist: The 'printlist' command prints the process list in its current state.\n", 85);
+						char buff[1000];
+						int no = sprintf(buff, "%s", "1. add: The 'add' command sums the string of numbers that follows it.\n");
+						no+=sprintf(buff+no, "%s", "2. sub: The 'sub' command subtracts each subsequent number from the previous one.\n");
+						no+=sprintf(buff+no,"%s", "3. mul: The 'mul' command multiplies all the numbers.\n");
+						no+=sprintf(buff+no, "%s","4. div: The 'div' command divides the first number by the second number.\n");
+						no+=sprintf(buff+no,"%s","5. run: The 'run' command starts a new process if exec is successful.\n");
+						no+=sprintf(buff+no,"%s","6. exit: The 'exit' command terminates the current program.\n");
+						no+=sprintf(buff+no,"%s","7. kill: The 'kill' command terminates a child process by either pid or name which follows it.\n");
+						no+=sprintf(buff+no,"%s","8. printlist: The 'printlist' command prints the process list in its current state.\n");
+						write(msgsock, buff, no);
 					}
 				}
 					
@@ -318,14 +322,14 @@ void addProcess(pid_t pid, char* name, char* st){
 
 void printList(){
     int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
-    char * buff[100000];
-    int w= write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\tEndTime\n\n", 65);
+    //char * buff[100000];
     int i;
+	char onebuff[1024];
+	int no=0;
+	no= sprintf(onebuff, "%s", "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\tEndTime\n\n");
     for(i=0; i<tracker; i++){
-        int no=0;
-        char onebuff[100];
         char elap[16];
-        no = sprintf(onebuff, "%d\t", i+1);
+        no += sprintf(onebuff+no, "%d\t", i+1);
         no += sprintf(onebuff + no, "%d\t\t", proc[i].pid);
         no += sprintf(onebuff + no, "%s\t\t", proc[i].name);
         no += sprintf(onebuff + no, "%s\t", proc[i].stime);
@@ -349,6 +353,7 @@ void printList(){
         
         if(proc[i].isActive){
             proc[i].eltime=strdup(elap);
+
             no += sprintf(onebuff + no, "%s\t", elap);
         }
         else{
@@ -357,11 +362,10 @@ void printList(){
         }
         no += sprintf(onebuff + no, "%s\t", proc[i].isActive  ? "Yes" : "No");
         no += sprintf(onebuff + no, "%s\n", proc[i].endtime);
-        buff[i]= strdup(onebuff);
+        //buff[i]= strdup(onebuff);
     }
-    for(i=0; i<tracker; i++){
-        write(STDOUT_FILENO, buff[i], strlen(buff[i]));
-    }
+	write(msgsock, onebuff, no);
+	
 }
 
   

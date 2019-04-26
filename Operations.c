@@ -246,7 +246,7 @@ void addProcess(pid_t pid, char* name, char* st){
 
 void printList(){
     int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
-    char  buff[100000];
+    char * buff[100000];
     int w= write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\tEndTime\n\n", 65);
     int i;
     for(i=0; i<tracker; i++){
@@ -287,6 +287,7 @@ void printList(){
         no += sprintf(onebuff + no, "%s\n", proc[i].endtime);
         buff[i]= strdup(onebuff);
     }
+    //write in one big string later
     for(i=0; i<tracker; i++){
         write(STDOUT_FILENO, buff[i], strlen(buff[i]));
     }
