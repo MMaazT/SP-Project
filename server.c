@@ -1,10 +1,8 @@
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,6 +12,7 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <errno.h>
+#include <pthread.h>
 #define TRUE 1
 
 /*
@@ -38,6 +37,7 @@ int tracker=0;
 int hours, minutes, seconds;
 time_t now;
 int msgsock;
+pthread_t conn_handler, client_handler;
 
 int main(void)
 {
@@ -208,10 +208,8 @@ int main(void)
 					else if(strcmp(token, "kill")==0){
 						token= strtok(NULL, " ");
 						int i;
-						bool allTerminated=true;
 						bool isPresent=false;
 						for(i=0; i<tracker; i++){
-							bool allTerminated=true;
 							char strpid[6];
 							sprintf(strpid, "%d", proc[i].pid);
 							if (strcmp(strpid, token)==0){
@@ -247,7 +245,7 @@ int main(void)
 									if(k==-1) perror("Kill Error: ");
 									else {
 										proc[i].isActive=false;
-										allTerminated=false; 
+										//allTerminated=false; 
 										char timebuff[30];	
 										time(&now);
 										struct tm *local = localtime(&now);
@@ -259,20 +257,16 @@ int main(void)
 										else	// after midday
 											sprintf(timebuff,"%02d:%02d:%02d pm", hours - 12, minutes, seconds);
 										proc[i].endtime= strdup(timebuff);
-										write(msgsock, "The process has terminated successfully!\n", 41);
+										write(msgsock, "The process has terminated successfully!\n", 42);
 										break;
 									} 
-								}/*
+								}
 								else {
-									if(i!=tracker-1) continue;
-									else{
-										if(allTerminated){
-										write(STDOUT_FILENO, "All instances of this process have already terminated!\n", 55);
-										break;}   
-									}      
-									}*/   
+									write(msgsock, "Atleast one process by this name has already terminated.\n",58);
+									break;
+									}   
 							}
-						}   if(!isPresent) write(msgsock,"No process present with the given name and pid!\n", 48);
+						}   if(!isPresent) write(msgsock,"No process present with the given name and pid!\n", 49);
 					}
 					else if(strcmp(token, "exit")==0){
 						//kill()
@@ -300,15 +294,12 @@ int main(void)
 			close(msgsock);
 		}
 			else { 	//connection handler (server)
-
+				//list connection
+				//take commands on server
 			}
 		}
 } while (TRUE);
-	/*
-	 * Since this program has an infinite loop, the socket "sock" is
-	 * never explicitly closed.  However, all sockets will be closed
-	 * automatically when a process is killed or terminates normally.
-	 */
+	//might have to close sock
 }
 
 void addProcess(pid_t pid, char* name, char* st){
