@@ -67,15 +67,16 @@ while(1){
         write(STDOUT_FILENO, diffbuff, s);
     }
     else if(strcmp(token, "mul")==0){
-        int mul=0;
-        token= strtok(NULL, " "); //store the first number in token
+        int mul=1;
+        //token= strtok(NULL, " "); //store the first number in token
         int tok2;
         mul=atoi(token); //assign it to mult
         tok2= atoi(strtok(NULL, " "));
         while(token!=NULL){
             mul= mul * (tok2); //the current number gets multiplied by the next number in the string
+             token= strtok(NULL, " "); //store the current number
             tok2=atoi(token); // stores the next number of the string.
-            token= strtok(NULL, " "); //store the current number
+           
         }
         char mulbuff[50];
         int s =sprintf(mulbuff, "%i\n", mul);
@@ -245,7 +246,7 @@ void addProcess(pid_t pid, char* name, char* st){
 
 void printList(){
     int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
-    char * buff[100000];
+    char  buff[100000];
     int w= write(STDOUT_FILENO, "No.\tProcessID\tProcessName\tStartTime\tTimeElapsed\tActive\tEndTime\n\n", 65);
     int i;
     for(i=0; i<tracker; i++){

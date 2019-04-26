@@ -13,6 +13,8 @@
 #include <signal.h>
 
 
+#define DATA "Half a league, half a league . . ."
+
 /*
  * This program creates a socket and initiates a connection with the socket
  * given in the command line.  One message is sent over the connection and
@@ -52,16 +54,12 @@ int main(int argc, char *argv[])
 		count++;
 		char buff[1024];
 		int r=read(STDIN_FILENO, buff, sizeof(buff));
-		//buff[r-1]='\0';
-	    int w= write(sock, buff, r-1);
+		buff[r-1]='\0';
+	    int w= write(sock, buff, strlen(buff));
 		if(w<0)
 			 perror("writing on stream socket");
-		int readback= read(sock, buff, sizeof(buff));
-		write(STDOUT_FILENO, buff, readback);
-		//if (count==5) break;
+		
+		if (count==5) break;
 	}
 	close(sock);
 }
-
-
-
