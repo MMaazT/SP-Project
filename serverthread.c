@@ -84,8 +84,16 @@ int main(void)
 
 	/* Start accepting connections */
 	listen(sock, 5);
+    int ret=pthread_create(&conn_handler, NULL, conn_handle, NULL);
+    if(ret==-1){
+            perror("ThreadConnHandler: ");
+        }
+    //write(STDOUT_FILENO, "Maaz", 5);
+    //int ip=inet_ntoa(server.sin_addr);
+    //int port= server.sin_port;
+   // addConn(ip, port);
 	do {
-		msgsock = accept(sock, (struct sockaddr *) &server, sizeof(server));
+		msgsock = accept(sock, 0, 0);
 		if (msgsock == -1)
 			perror("accept");
 		else {
@@ -94,20 +102,20 @@ int main(void)
 			int f1=fork();
 			if(f1<0) perror("Client didnt start: ");
 			else if(f1==0){
+                //client handler  
                 int ret=pthread_create(&client_handler, NULL, client_funcs, NULL);
                 if(!ret){
                     perror("thread");
                 }
-				close(msgsock);
-		}
-			else { 	
-                int ret=pthread_create(&conn_handler, NULL, conn_handle, NULL);
-                int ip=inet_ntoa(server.sin_addr);
-                int port= server.sin_port;
-                addConn(ip, port);
+				
+		    }
+			else {
+                //connection handler 	
+                
 			}
 		}
 } while (TRUE);
+    
 	//might have to close sock
 }
 
@@ -392,10 +400,12 @@ void * client_funcs(){
     }
         
     }while (rval != 0);
+    close(msgsock);
 }
 
 void * conn_handle(){
     while(1){
+    write(STDOUT_FILENO, "Hello\n", 6);
     bzero(buf, sizeof(buf));
     read(STDIN_FILENO, buf, sizeof(buf));
     char *token= strtok(buf, " ");
@@ -416,6 +426,18 @@ void * conn_handle(){
             }
             write(STDOUT_FILENO, ips, s);
         }
+        else if(strcmp(token, "add")==0){
+            int sum=0;
+            token= strtok(NULL, " ");
+            while(token!=NULL){
+                sum+=atoi(token);
+                token=strtok(NULL, " ");
+        }
+            char sumbuff[10];
+            int s =sprintf(sumbuff, "%d\n", sum);
+            if(s==-1) perror("sprintf:");
+            write(STDOUT_FILENO, sumbuff, s);
        
     }
+}
 }
