@@ -23,7 +23,10 @@
  */
 void printlist();
 void * client_funcs();
+void * conn_handle();
 void addProcess(pid_t pid, char* name, char* st);
+void addConn(int ip, int port);
+
 typedef struct Process{
     pid_t pid;
     char * name; 
@@ -32,9 +35,16 @@ typedef struct Process{
     char * endtime;
     bool isActive;
  } Processes;
+ typedef struct Connection{
+    int ip_address;
+    int port;
 
+ } Connections;
+ 
+Connections conn[1000];
 Processes proc[1000];
 int tracker=0;
+int connTrack=0; //index for connections
 int hours, minutes, seconds;
 time_t now;
 int msgsock;
@@ -47,9 +57,6 @@ int main(void)
 {
 	int sock, length;
 	struct sockaddr_in server;
-	
-	
-
 	/* Create socket */
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
@@ -78,21 +85,26 @@ int main(void)
 	/* Start accepting connections */
 	listen(sock, 5);
 	do {
-		msgsock = accept(sock, 0, 0);
+		msgsock = accept(sock, (struct sockaddr *) &server, sizeof(server));
 		if (msgsock == -1)
 			perror("accept");
 		else {
 			//my code
-			//fork will create a client handler which will then do all the computations. MIght have to create a pipe before fork.
+			//fork will create a client handler which will then do all the computations.
 			int f1=fork();
 			if(f1<0) perror("Client didnt start: ");
 			else if(f1==0){
-                pthread_create(&client_handler, NULL, client_funcs, NULL);
+                int ret=pthread_create(&client_handler, NULL, client_funcs, NULL);
+                if(!ret){
+                    perror("thread");
+                }
 				close(msgsock);
 		}
-			else { 	//connection handler (server)
-				//list connection
-				//take commands on server
+			else { 	
+                int ret=pthread_create(&conn_handler, NULL, conn_handle, NULL);
+                int ip=inet_ntoa(server.sin_addr);
+                int port= server.sin_port;
+                addConn(ip, port);
 			}
 		}
 } while (TRUE);
@@ -106,6 +118,10 @@ void addProcess(pid_t pid, char* name, char* st){
     proc[tracker].isActive=true;
     proc[tracker].endtime= "-------------";
     tracker++;
+}
+void addConn(int ip, int port){
+    conn[connTrack].ip_address=ip;
+    conn[connTrack].port=port;
 }
 
 void printList(){
@@ -156,14 +172,27 @@ void printList(){
 	
 }
 
+void listconnections(){
+    char onebuff[1024];
+	int no=0;
+    int i;
+	no= sprintf(onebuff, "%s", "No.\tIP\tPortn\n");
+    for(i=0; i<connTrack; i++){
+        no += sprintf(onebuff+no, "%d\t", i+1);
+        no += sprintf(onebuff + no, "%d\t", conn[connTrack].ip_address);
+        no += sprintf(onebuff + no, "%d\t\n", conn[connTrack].port);
+    }
+    write(STDOUT_FILENO, onebuff, no);
+}
+
 void * client_funcs(){
     do {			
         bzero(buf, sizeof(buf));
         if ((rval = read(msgsock, buf, 1024)) < 0)
             perror("reading stream message");
-        i = 0;
-        if (rval == 0)
-        printf("Ending connection\n");
+        //i = 0;
+        else if (rval == 0)
+        write(STDOUT_FILENO, "Ending connection\n", 19);
         else {
             //Operations start here
             char *token= strtok(buf, " ");
@@ -365,4 +394,28 @@ void * client_funcs(){
     }while (rval != 0);
 }
 
-  
+void * conn_handle(){
+    while(1){
+    bzero(buf, sizeof(buf));
+    read(STDIN_FILENO, buf, sizeof(buf));
+    char *token= strtok(buf, " ");
+        if(strcmp(token, "listconnections")==0){
+            listconnections();
+        }
+
+        else if(strcmp(token, "printbyip")==0){
+            char ips[20];
+            token= strtok(NULL, " ");
+            int ip=atoi(token);
+            int i;
+            int s;
+            for(i=0; i< connTrack; i++){
+                if(conn[connTrack].ip_address==ip){
+                    s= sprintf(ips, "%d\t%d\n", ip, conn[connTrack].port);
+                }
+            }
+            write(STDOUT_FILENO, ips, s);
+        }
+       
+    }
+}
