@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <pthread.h>
 
 
 /*
@@ -19,6 +20,9 @@
  * then the socket is closed, ending the connection. The form of the command
  * line is streamwrite hostname portnumber
  */
+
+pthread_t server_msg;
+
 
 int main(int argc, char *argv[])
 	{
@@ -38,7 +42,6 @@ int main(int argc, char *argv[])
 	hp = gethostbyname(argv[1]);
 	if (hp == 0) {
 		fprintf(stderr, "%s: unknown host\n", argv[1]);
-		//write(STDERR_FILENO, stderr, strlen(stderr));
 		exit(2);
 	}
 	bcopy(hp->h_addr_list[0], &server.sin_addr, hp->h_length);
@@ -58,6 +61,11 @@ int main(int argc, char *argv[])
 			 perror("writing on stream socket");
 		int readback= read(sock, buff, sizeof(buff));
 		write(STDOUT_FILENO, buff, readback);
+		//buff[readback]='\0';
+		if(strncmp(buff, "exit", 4)==0){
+			exit(0);
+		}
+		
 	}
 	close(sock);
 }

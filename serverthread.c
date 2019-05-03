@@ -1,5 +1,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -25,7 +26,7 @@ void printlist();
 void * client_funcs();
 void * conn_handle();
 void addProcess(pid_t pid, char* name, char* st);
-void addConn(int ip, int port);
+void addConn(char* ip, int port);
 
 typedef struct Process{
     pid_t pid;
@@ -36,9 +37,8 @@ typedef struct Process{
     bool isActive;
  } Processes;
  typedef struct Connection{
-    int ip_address;
+    char * ip_address;
     int port;
-
  } Connections;
  
 Connections conn[1000];
@@ -84,17 +84,26 @@ int main(void)
 
 	/* Start accepting connections */
 	listen(sock, 5);
-    int ret=pthread_create(&conn_handler, NULL, conn_handle, NULL);
-    if(ret==-1){
-            perror("ThreadConnHandler: ");
-        }
-    //write(STDOUT_FILENO, "Maaz", 5);
-    //int ip=inet_ntoa(server.sin_addr);
-    //int port= server.sin_port;
-   // addConn(ip, port);
-	do {
-		msgsock = accept(sock, 0, 0);
-		if (msgsock == -1)
+    //int ret=pthread_create(&conn_handler, NULL, conn_handle, NULL);
+    //if(ret==-1){
+      //      perror("ThreadConnHandler: ");
+       // }
+	
+    do {
+        
+        struct sockaddr_in clientaddr;
+        struct socklen_t * clientaddr_size = sizeof(clientaddr);
+        int ret=pthread_create(&conn_handler, NULL, conn_handle, NULL);
+		msgsock = accept(sock, (struct sockaddr *) &clientaddr, &clientaddr_size);
+
+           
+        char * ip_client;
+        ip_client= strdup(inet_ntoa(clientaddr.sin_addr));		
+        int port_client= ntohs(clientaddr.sin_port);
+        addConn(ip_client, port_client);
+        write(STDOUT_FILENO, ip_client, 16 ); 
+        
+        if (msgsock == -1)
 			perror("accept");
 		else {
 			//my code
@@ -110,8 +119,8 @@ int main(void)
 				
 		    }
 			else {
-                //connection handler 	
                 
+                           
 			}
 		}
 } while (TRUE);
@@ -127,11 +136,11 @@ void addProcess(pid_t pid, char* name, char* st){
     proc[tracker].endtime= "-------------";
     tracker++;
 }
-void addConn(int ip, int port){
-    conn[connTrack].ip_address=ip;
+void addConn(char* ip, int port){
+    conn[connTrack].ip_address=strdup(ip);
     conn[connTrack].port=port;
+    connTrack++;
 }
-
 void printList(){
     int seconds1, seconds2, h2, m2, s2,difft, dh, dm, ds;
     //char * buff[100000];
@@ -183,10 +192,10 @@ void printList(){
 void listconnections(){
     char onebuff[1024];
 	int no=0;
-    int i;
-	no= sprintf(onebuff, "%s", "No.\tIP\tPortn\n");
-    for(i=0; i<connTrack; i++){
-        no += sprintf(onebuff+no, "%d\t", i+1);
+    int j;
+	no= sprintf(onebuff, "%s", "No.\tIP\tPort\n");
+    for(j=0; j<connTrack; j++){
+        no += sprintf(onebuff+no, "%d\t", j+1);
         no += sprintf(onebuff + no, "%d\t", conn[connTrack].ip_address);
         no += sprintf(onebuff + no, "%d\t\n", conn[connTrack].port);
     }
@@ -198,9 +207,16 @@ void * client_funcs(){
         bzero(buf, sizeof(buf));
         if ((rval = read(msgsock, buf, 1024)) < 0)
             perror("reading stream message");
-        //i = 0;
-        else if (rval == 0)
-        write(STDOUT_FILENO, "Ending connection\n", 19);
+        else if (rval == 0){
+            //close(msgsock);
+            int i;
+            for(i=0; i<tracker; i++){
+                write(buf, "Maaz", 4);
+                if(proc[i].isActive)
+                    kill(proc[i].pid, SIGTERM);
+            }
+            write(STDOUT_FILENO, "Ending connection\n", 19);
+        }
         else {
             //Operations start here
             char *token= strtok(buf, " ");
@@ -377,11 +393,7 @@ void * client_funcs(){
                 }
             }   if(!isPresent) write(msgsock,"No process present with the given name and pid!\n", 49);
         }
-        else if(strcmp(token, "exit")==0){
-            //kill()
-            break;
-            exit(0);
-        }
+       
         else if(strcmp(token, "printlist")==0){
             printList();
         }
@@ -397,6 +409,9 @@ void * client_funcs(){
             no+=sprintf(buff+no,"%s","8. printlist: The 'printlist' command prints the process list in its current state.\n");
             write(msgsock, buff, no);
         }
+        else{
+            write(msgsock, "NO SUCH COMMAND FOUND!\n",24);
+        }
     }
         
     }while (rval != 0);
@@ -405,23 +420,22 @@ void * client_funcs(){
 
 void * conn_handle(){
     while(1){
-    write(STDOUT_FILENO, "Hello\n", 6);
+    //write(STDOUT_FILENO, "Hello\n", 6);
     bzero(buf, sizeof(buf));
-    read(STDIN_FILENO, buf, sizeof(buf));
+    int r=read(STDIN_FILENO, buf, sizeof(buf));
     char *token= strtok(buf, " ");
-        if(strcmp(token, "listconnections")==0){
+        if(strncmp(token, "listconnections", 5)==0){
+            //write(STDOUT_FILENO, "Hello\n", 7);
             listconnections();
         }
-
         else if(strcmp(token, "printbyip")==0){
-            char ips[20];
+            char ips[30];
             token= strtok(NULL, " ");
-            int ip=atoi(token);
-            int i;
+            int j;
             int s;
-            for(i=0; i< connTrack; i++){
-                if(conn[connTrack].ip_address==ip){
-                    s= sprintf(ips, "%d\t%d\n", ip, conn[connTrack].port);
+            for(j=0; j< connTrack; j++){
+                if(strcmp(conn[connTrack].ip_address,token)==0){
+                    s= sprintf(ips, "%s\t%d\n", token, conn[connTrack].port);
                 }
             }
             write(STDOUT_FILENO, ips, s);
@@ -436,8 +450,9 @@ void * conn_handle(){
             char sumbuff[10];
             int s =sprintf(sumbuff, "%d\n", sum);
             if(s==-1) perror("sprintf:");
+            //printf( "23123\n");
+            //write(STDOUT_FILENO, sumbuff, 3);
             write(STDOUT_FILENO, sumbuff, s);
-       
-    }
+        }
 }
 }
